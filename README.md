@@ -1,12 +1,16 @@
 # Space Invaders — Last Line
 
+[![▶ Play Space Invaders](https://img.shields.io/badge/%E2%96%B6%20PLAY%20NOW-Space%20Invaders-75f4ff?style=for-the-badge&labelColor=02040a)](https://crinklebine.github.io/space-invaders/)
+
+**Play online:** [crinklebine.github.io/space-invaders](https://crinklebine.github.io/space-invaders/)
+
 A neon-drenched, single-file take on Space Invaders, presented inside a portrait arcade cabinet. Hold the last line through escalating waves of invaders, crumbling bunkers, and falling bombs — and watch for the mystery UFO. Most saucers go down in one shot, but a rare armored variant deflects your first hit and pays **1,000 points** when you finish it off.
 
 ![Space Invaders — Last Line](screenshot.png)
 
 ## Play
 
-Open `index.html` in any modern browser. No build step, server, or external dependencies.
+Play in your browser at **https://crinklebine.github.io/space-invaders/**, or open `index.html` locally. No build step, server, or external dependencies.
 
 ## Controls
 
