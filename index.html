@@ -760,6 +760,7 @@ const live = document.getElementById('live');
 const touchButtons = [...document.querySelectorAll('[data-hold]')];
 
 let infoOpen = false;
+let resetConfirm = false;
 const game = {
   mode: 'menu', score: 0, hiScore: Math.max(0, parseInt(storeGet(storeKey('hi'), '0'), 10) || 0),
   wave: 1, lives: 3, nextExtra: 5000, newHigh: false,
@@ -808,6 +809,14 @@ function syncUI() {
 }
 function announce(msg) { live.textContent = ''; setTimeout(() => { live.textContent = msg; }, 30); }
 function saveHi() { storeSet(storeKey('hi'), Math.max(game.hiScore, game.score)); }
+function resetHighScore() {
+  game.hiScore = 0;
+  game.newHigh = false;
+  storeSet(storeKey('hi'), 0);
+  resetConfirm = false;
+  sound.ui();
+  announce('High score reset to zero.');
+}
 function toggleSound() {
   sound.init();
   sound.setEnabled(!soundEnabled);
@@ -982,9 +991,10 @@ function clearHeldInput() {
 }
 function toggleInfo(open = !infoOpen) {
   infoOpen = open;
+  resetConfirm = false;
   sound.ui();
   announce(infoOpen
-    ? `System info. Page ${PAGE_NAME}. Game ID ${GAME_ID}. Build ${BUILD_HASH}, built ${BUILD_DATE}. ${innerWidth} by ${innerHeight}. Arcade best ${game.hiScore}.`
+    ? `System info. Page ${PAGE_NAME}. Game ID ${GAME_ID}. Build ${BUILD_HASH}, built ${BUILD_DATE}. ${innerWidth} by ${innerHeight}. Arcade best ${game.hiScore}. Press R to reset high score.`
     : 'System info closed.');
 }
 function primaryAction() {
@@ -1037,13 +1047,28 @@ document.addEventListener('keydown', e => {
   const tag = (e.target && e.target.tagName || '').toLowerCase();
   if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
   if (tag === 'button' && (e.code === 'Space' || e.code === 'Enter')) return;
-  const used = ['ArrowLeft','ArrowRight','KeyA','KeyD','Space','Enter','KeyP','Escape','KeyM','KeyI'];
+  const used = ['ArrowLeft','ArrowRight','KeyA','KeyD','Space','Enter','KeyP','Escape','KeyM','KeyI','KeyR','KeyY','KeyN'];
   if (!used.includes(e.code)) return;
   e.preventDefault();
   sound.init();
   if (e.repeat) return;
   if (e.code === 'KeyI' && game.mode === 'menu') { toggleInfo(); return; }
   if (infoOpen) {
+    if (resetConfirm) {
+      if (e.code === 'KeyY') { resetHighScore(); return; }
+      if (e.code === 'KeyN' || e.code === 'Escape' || e.code === 'Space' || e.code === 'Enter') {
+        resetConfirm = false;
+        sound.ui();
+        announce('High score reset cancelled.');
+      }
+      return;
+    }
+    if (e.code === 'KeyR') {
+      resetConfirm = true;
+      sound.ui();
+      announce('Reset high score? Press Y for yes or N for no.');
+      return;
+    }
     if (e.code === 'Escape' || e.code === 'Space' || e.code === 'Enter') toggleInfo(false);
     return;
   }
@@ -1891,9 +1916,11 @@ function drawMenu() {
   pText('MYSTERY', ufoX, 600, 2, C.red, { align: 'center', alpha: .65 });
 }
 
+const INFO_RECT = { x: 45, y: 160, w: W - 90, h: 400 };
+
 function drawInfo() {
   dim(.84);
-  const x = 45, y = 160, w = W - 90, h = 400;
+  const { x, y, w, h } = INFO_RECT;
   ctx.save();
   ctx.fillStyle = 'rgba(2,6,12,.92)';
   ctx.fill(cutPath(x, y, w, h, 13));
@@ -1916,8 +1943,28 @@ function drawInfo() {
     tracked(label, x + 30, ry, { size: rowSize, tracking: 1.8 * scale, color: C.muted });
     tracked(value, x + w - 30, ry, { size: rowSize, tracking: .6 * scale, color, align: 'right' });
   });
-  line(x + 30, y + h - 66, x + w - 30, y + h - 66, rgba(C.mint, .18));
-  tracked('PRESS I OR TAP TO CLOSE', W / 2, y + h - 34, { align: 'center', size: footSize, tracking: 2.2 * scale, color: C.muted });
+  line(x + 30, y + h - 92, x + w - 30, y + h - 92, rgba(C.mint, .18));
+  tracked('PRESS R TO RESET HIGH SCORE', W / 2, y + h - 66, { align: 'center', size: footSize, tracking: 2 * scale, color: C.amber });
+  tracked('PRESS I OR TAP TO CLOSE', W / 2, y + h - 36, { align: 'center', size: footSize, tracking: 2.2 * scale, color: C.muted });
+  if (resetConfirm) drawResetConfirm(scale);
+}
+
+function drawResetConfirm(scale) {
+  const { x, y, w, h } = INFO_RECT;
+  const mx = 90, my = 250, mw = W - 180, mh = 230;
+  ctx.save();
+  ctx.fillStyle = 'rgba(2,6,12,.84)';
+  ctx.fill(cutPath(x, y, w, h, 13));
+  ctx.restore();
+  panel(mx, my, mw, mh, C.amber, 1);
+  const titleSize = 13 * scale, bodySize = 10 * scale, smallSize = 8.5 * scale;
+  tracked('RESET HIGH SCORE?', W / 2, my + 42, { align: 'center', size: titleSize, tracking: 2.2 * scale, color: C.amber });
+  tracked('SET ARCADE BEST TO ZERO?', W / 2, my + 82, { align: 'center', size: bodySize, tracking: 1.4 * scale, color: C.ink });
+  tracked(`CURRENT BEST ${padScore(game.hiScore)}`, W / 2, my + 108, { align: 'center', size: bodySize, tracking: 1.2 * scale, color: C.muted });
+  tracked('THIS CANNOT BE UNDONE', W / 2, my + 134, { align: 'center', size: smallSize, tracking: 1.6 * scale, color: C.red });
+  tracked('[Y] YES', W / 2 - 88, my + 174, { align: 'center', size: 11 * scale, tracking: 1.8 * scale, color: C.red });
+  tracked('[N] NO', W / 2 + 88, my + 174, { align: 'center', size: 11 * scale, tracking: 1.8 * scale, color: C.mint });
+  tracked('ESC CANCELS', W / 2, my + 204, { align: 'center', size: smallSize, tracking: 2 * scale, color: C.muted });
 }
 
 function drawBanner() {
