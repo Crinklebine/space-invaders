@@ -7,6 +7,7 @@ You are a senior front-end game developer. Build a complete, single-file browser
 - Deliver **one static `index.html`** with inline CSS and JavaScript. No build step, no framework, no bundler, no external JS/CSS libraries.
 - The game must run offline by opening `index.html` directly.
 - Use **Canvas 2D** for the game and **Web Audio API** for sound. Do not use sprite sheets, image files, or audio files for gameplay.
+- Do not include analytics, telemetry, or third-party tracking scripts.
 - Do not replace the art with generic Space Invaders sprites. Use the exact ASCII sprite patterns, colors, glow treatment, and font described here.
 - Preserve the portrait **7:8** screen aspect ratio and the arcade-cabinet framing.
 - Everything below is intentional. Do not “simplify” timers, scoring, hitboxes, or screen wording.
@@ -1036,11 +1037,7 @@ If reproducing the full repository, include or recreate:
 - `README.md`
 - `.github/workflows/deploy-pages.yml` for manual GitHub Pages deployment
 
-Optional GoatCounter analytics snippet:
-
-```html
-<script data-goatcounter="https://crink.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
-```
+Do not include analytics, telemetry, or third-party tracking scripts. The game should make no external network requests for gameplay, fonts, images, audio, or analytics.
 
 If the game must be exactly one file, keep all gameplay self-contained and omit missing icon/manifest links rather than breaking them.
 
