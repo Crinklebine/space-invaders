@@ -523,9 +523,9 @@ Invasion:
 - If the abandoned run had beaten the stored high (`game.newHigh === true`), the pause screen’s TITLE SCREEN row must show `[HIGH SCORE LOST]` in amber.
 - The pause announcement must also warn that returning to title will lose the run’s new high score.
 - Resetting the high score via system info intentionally writes `0`; that is the only non-game-over high-score write.
-- Storage keys:
-  - High score: `si.last-line-79b111.hi`
-  - Sound: `si.last-line-79b111.sound`
+- Storage keys, derived from this project’s one-time `GAME_ID`:
+  - High score: `si.${GAME_ID}.hi`
+  - Sound: `si.${GAME_ID}.sound`
 - Do not read or write legacy keys.
 
 ## UFO
@@ -670,7 +670,7 @@ Use this scale for info text and for the info action rows. On phones, info text 
 - Header line at `y+56` from `x+30` to `x+w-30`.
 - Six rows, starting at `y+88`, spacing 38:
   - `PAGE` → current page filename
-  - `GAME ID` → `last-line-79b111`
+  - `GAME ID` → `last-line-<the project’s one-time 6-hex hash>`
   - `BUILD` → 7-character build hash
   - `BUILT` → `YYYY-MM-DD HH:MM:SS UTC`
   - `RES` → `innerWidth × innerHeight @ DPRx`
@@ -979,19 +979,32 @@ Exact effects:
 
 # 14. Persistence, build info, and extras
 
-## Game identity
+## Game identity and the one-time hash
 
 ```js
 GAME_NAME = 'last-line'
-GAME_HASH = '79b111'
-GAME_ID = 'last-line-79b111'
+GAME_HASH = '<unique random 6 lowercase hex chars, generated once>'
+GAME_ID = `${GAME_NAME}-${GAME_HASH}`
 storeKey(name) => `si.${GAME_ID}.${name}`
 ```
 
+Generate `GAME_HASH` **exactly once at the start of development**:
+
+- Use a secure random source, for example `openssl rand -hex 3`.
+- The result must be **6 lowercase hexadecimal characters**.
+- Write the generated value into the source as a literal.
+- Never regenerate, randomize, or change it afterward.
+- Do not reuse the hash from the reference game or from any other existing build. This prompt intentionally does not contain the reference hash.
+- The reference game uses the same name-plus-hash format; only the format is an example, not its value.
+
+This hash is the game’s save namespace. Changing it would orphan every player’s high score and sound preference.
+
 Only these keys may be read or written:
 
-- `si.last-line-79b111.hi`
-- `si.last-line-79b111.sound`
+- `si.${GAME_ID}.hi`
+- `si.${GAME_ID}.sound`
+
+For example, if the generated hash were `a1b2c3`, the keys would be `si.last-line-a1b2c3.hi` and `si.last-line-a1b2c3.sound`.
 
 Unknown/legacy keys must be ignored. Do not migrate old scores.
 
@@ -1048,6 +1061,7 @@ A correct reproduction should satisfy all of these:
 - Info screen shows page, game ID, build hash/date, resolution, and arcade best; reset works by touch and keyboard.
 - Pause screen has RESUME and TITLE SCREEN rows; tapping outside does nothing; `[HIGH SCORE LOST]` appears when appropriate.
 - Game-over screen has PLAY AGAIN and TITLE SCREEN rows, correct reason text, final score, hi-score, and new-high state.
+- A unique random 6-hex `GAME_HASH` is generated once at project start, is not copied from the reference game, and never changes; `GAME_ID` and all storage keys derive from it.
 - High score is persisted **only** when a run reaches game over. Pause quit, reload, and tab close before game over do not save it; pause quit restores the stored high.
 - The primary in-canvas touch targets are at least ~44 CSS px tall on a 390 px viewport; the deck utility buttons match the smaller cabinet styling.
 - Keyboard and touch flows both work; announcements are available to assistive tech.
