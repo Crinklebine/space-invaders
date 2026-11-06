@@ -330,8 +330,8 @@
   <div class="screen-shell">
     <div class="screen">
       <canvas id="game" width="1260" height="1440" tabindex="0" role="application"
-        aria-label="Space Invaders. Move with the arrow keys or A and D. Fire with Space. Pause with P. Press Enter to play. Press Q on the game over screen to return to title."
-        aria-keyshortcuts="Enter Space ArrowLeft ArrowRight A D P M Q"></canvas>
+        aria-label="Space Invaders. Move with the arrow keys or A and D. Fire with Space. Pause with P. Press Enter to play. Press Q on the pause or game over screen to return to title. Returning from pause abandons the run without saving its score."
+        aria-keyshortcuts="Enter Space Escape ArrowLeft ArrowRight A D P M Q"></canvas>
       <div class="fx scanlines" aria-hidden="true"></div>
       <div class="fx glare" aria-hidden="true"></div>
       <div class="fx vignette" aria-hidden="true"></div>
@@ -761,8 +761,11 @@ const touchButtons = [...document.querySelectorAll('[data-hold]')];
 
 let infoOpen = false;
 let resetConfirm = false;
+function storedHiScore() {
+  return Math.max(0, parseInt(storeGet(storeKey('hi'), '0'), 10) || 0);
+}
 const game = {
-  mode: 'menu', score: 0, hiScore: Math.max(0, parseInt(storeGet(storeKey('hi'), '0'), 10) || 0),
+  mode: 'menu', score: 0, hiScore: storedHiScore(),
   wave: 1, lives: 3, nextExtra: 5000, newHigh: false,
   time: 0, shake: 0, damageFlash: 0,
   dyingTimer: 0, dyingReason: 'destroyed', endReason: 'destroyed',
@@ -808,7 +811,12 @@ function syncUI() {
   soundBtn.setAttribute('aria-pressed', String(soundEnabled));
 }
 function announce(msg) { live.textContent = ''; setTimeout(() => { live.textContent = msg; }, 30); }
-function saveHi() { storeSet(storeKey('hi'), Math.max(game.hiScore, game.score)); }
+/* Only endGame() calls saveHi(). Pausing or returning to title must not persist a run. */
+function saveHi() {
+  const best = Math.max(game.hiScore, game.score);
+  game.hiScore = best;
+  storeSet(storeKey('hi'), best);
+}
 function resetHighScore() {
   game.hiScore = 0;
   game.newHigh = false;
@@ -961,16 +969,19 @@ function endGame(reason) {
     if (player) spawnBurst(player.x, player.y + 10, C.red, 36, 1.4);
     game.shake = Math.max(game.shake, 14);
   }
-  saveHi();
+  saveHi(); // Only a completed run writes a high score.
   sound.gameOver();
   clearHeldInput();
   syncUI();
   announce(`Game over. Final score ${game.score}. Press Enter to play again or Q to return to title.`);
 }
 function returnToTitle() {
-  if (game.mode !== 'gameover') return;
+  if (game.mode !== 'gameover' && game.mode !== 'paused') return;
+  const abandoned = game.mode === 'paused';
+  const finalScore = game.score;
   clearHeldInput();
   game.mode = 'menu';
+  if (abandoned) game.hiScore = storedHiScore();
   game.score = 0;
   game.wave = 1;
   game.lives = 3;
@@ -984,18 +995,22 @@ function returnToTitle() {
   canvas.style.cursor = 'crosshair';
   sound.ui();
   syncUI();
-  announce('Returned to title screen.');
+  announce(abandoned
+    ? `Returned to title screen. Run abandoned at score ${finalScore}; only game over saves a high score.`
+    : 'Returned to title screen.');
 }
 function pauseGame() {
   if (game.mode !== 'playing') return;
   game.mode = 'paused';
+  canvas.style.cursor = 'default';
   clearHeldInput();
   syncUI();
-  announce('Game paused.');
+  announce('Game paused. Press P, Escape, or Enter to resume, or Q to return to title.');
 }
 function resumeGame() {
   if (game.mode !== 'paused') return;
   game.mode = 'playing';
+  canvas.style.cursor = 'crosshair';
   syncUI();
   announce('Game resumed.');
 }
@@ -1045,11 +1060,16 @@ function beginPointer(e) {
     else if (inRect(px, py, GAME_OVER_TITLE_RECT)) returnToTitle();
     return;
   }
+  if (game.mode === 'paused') {
+    const px = canvasX(e), py = canvasY(e);
+    if (inRect(px, py, PAUSE_RESUME_RECT)) resumeGame();
+    else if (inRect(px, py, PAUSE_TITLE_RECT)) returnToTitle();
+    return;
+  }
   if (game.mode === 'menu') {
     primaryAction();
     return;
   }
-  if (game.mode === 'paused') { resumeGame(); return; }
   if (game.mode !== 'playing') return;
   try { canvas.setPointerCapture(e.pointerId); } catch { /* optional */ }
   pointer.id = e.pointerId;
@@ -1060,9 +1080,12 @@ function beginPointer(e) {
 canvas.addEventListener('pointerdown', beginPointer);
 canvas.addEventListener('pointermove', e => {
   const px = canvasX(e), py = canvasY(e);
-  const overAction = game.mode === 'gameover'
+  const overGameOver = game.mode === 'gameover'
     && (inRect(px, py, GAME_OVER_PLAY_RECT) || inRect(px, py, GAME_OVER_TITLE_RECT));
-  canvas.style.cursor = overAction ? 'pointer' : 'crosshair';
+  const overPause = game.mode === 'paused'
+    && (inRect(px, py, PAUSE_RESUME_RECT) || inRect(px, py, PAUSE_TITLE_RECT));
+  const showingActions = game.mode === 'gameover' || game.mode === 'paused';
+  canvas.style.cursor = (overGameOver || overPause) ? 'pointer' : showingActions ? 'default' : 'crosshair';
   if (!pointer.down || (pointer.id !== null && e.pointerId !== pointer.id)) return;
   pointer.x = clamp(px, 34, W - 34);
   e.preventDefault();
@@ -1089,7 +1112,7 @@ document.addEventListener('keydown', e => {
   e.preventDefault();
   sound.init();
   if (e.repeat) return;
-  if (e.code === 'KeyQ' && game.mode === 'gameover') { returnToTitle(); return; }
+  if (e.code === 'KeyQ' && (game.mode === 'gameover' || game.mode === 'paused')) { returnToTitle(); return; }
   if (e.code === 'KeyI' && game.mode === 'menu') { toggleInfo(); return; }
   if (infoOpen) {
     if (resetConfirm) {
@@ -2024,24 +2047,28 @@ function drawBanner() {
   if (b.sub) tracked(b.sub, W / 2, 379, { align: 'center', size: 10, tracking: 2.4, color: '#a9c4d4', alpha: a });
   ctx.restore();
 }
-function drawPause() {
-  dim(.55);
-  panel((W - 500) / 2, 258, 500, 226, C.cyan, 1);
-  tracked('SYSTEM HALTED', W / 2, 292, { align: 'center', size: 9, tracking: 3.2, color: C.cyanSoft });
-  pText('PAUSED', W / 2, 315, 6, C.ink, { align: 'center', glow: 18, glowColor: C.cyan });
-  decorativeLine(388, 300, C.cyan);
-  tracked('PRESS P OR ESC TO RESUME', W / 2, 411, { align: 'center', size: 10, tracking: 2, color: C.ink });
-  tracked('CLICK / TAP TO CONTINUE', W / 2, 438, { align: 'center', size: 9, tracking: 2, color: C.muted });
-}
+const PAUSE_RECT = { x: (W - 520) / 2, y: 200, w: 520, h: 320 };
+const PAUSE_RESUME_RECT = { x: W / 2 - 190, y: 340, w: 380, h: 78 };
+const PAUSE_TITLE_RECT = { x: W / 2 - 190, y: 426, w: 380, h: 78 };
 const GAME_OVER_RECT = { x: (W - 520) / 2, y: 160, w: 520, h: 440 };
 const GAME_OVER_PLAY_RECT = { x: W / 2 - 190, y: 420, w: 380, h: 78 };
 const GAME_OVER_TITLE_RECT = { x: W / 2 - 190, y: 506, w: 380, h: 78 };
 
-function drawGameOverAction(rect, label, hint, accent, alpha) {
+function drawActionRow(rect, label, hint, accent, alpha) {
   panel(rect.x, rect.y, rect.w, rect.h, accent, alpha);
   const cy = rect.y + rect.h / 2;
   tracked(label, rect.x + 26, cy, { size: 12, tracking: 2.4, color: C.ink, alpha });
   tracked(hint, rect.x + rect.w - 26, cy, { align: 'right', size: 9, tracking: 1.8, color: accent, alpha });
+}
+
+function drawPause() {
+  dim(.55);
+  panel(PAUSE_RECT.x, PAUSE_RECT.y, PAUSE_RECT.w, PAUSE_RECT.h, C.cyan, 1);
+  tracked('SYSTEM HALTED', W / 2, 236, { align: 'center', size: 9, tracking: 3.2, color: C.cyanSoft });
+  pText('PAUSED', W / 2, 258, 6, C.ink, { align: 'center', glow: 18, glowColor: C.cyan });
+  decorativeLine(322, 338, C.cyan);
+  drawActionRow(PAUSE_RESUME_RECT, 'RESUME', 'P / ESC / ENTER', C.cyan, 1);
+  drawActionRow(PAUSE_TITLE_RECT, 'TITLE SCREEN', 'Q', C.cyanSoft, .82);
 }
 
 function drawGameOver() {
@@ -2057,8 +2084,8 @@ function drawGameOver() {
   if (game.newHigh) {
     pText('NEW HIGH SCORE', W / 2, 395, 2, C.amber, { align: 'center', glow: 10, glowColor: C.amberGlow });
   }
-  drawGameOverAction(GAME_OVER_PLAY_RECT, 'PLAY AGAIN', 'ENTER / SPACE', C.cyan, 1);
-  drawGameOverAction(GAME_OVER_TITLE_RECT, 'TITLE SCREEN', 'Q', C.cyanSoft, .82);
+  drawActionRow(GAME_OVER_PLAY_RECT, 'PLAY AGAIN', 'ENTER / SPACE', C.cyan, 1);
+  drawActionRow(GAME_OVER_TITLE_RECT, 'TITLE SCREEN', 'Q', C.cyanSoft, .82);
 }
 function drawWaveClear() {
   dim(.46);
@@ -2104,7 +2131,7 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-window.addEventListener('beforeunload', saveHi);
+/* Deliberately no unload save: only endGame() commits a high score. */
 })();
 </script>
 </body>

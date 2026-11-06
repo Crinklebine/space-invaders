@@ -18,10 +18,10 @@ Play in your browser at **https://crinklebine.github.io/space-invaders/**, or op
 | --- | --- |
 | `←` / `→` or `A` / `D` | Move |
 | `Space` | Fire |
-| `P` / `Esc` | Pause |
+| `P` / `Esc` | Pause / resume |
 | `M` | Sound on/off |
-| `Enter` | Play / play again |
-| `Q` | Return to title (game over) |
+| `Enter` | Play / play again / resume |
+| `Q` | Title screen (pause or game over) |
 | `I` | System info (title screen) |
 | `R` | Reset high score (system info) |
 | `Y` / `N` | Confirm / cancel reset |
@@ -46,7 +46,7 @@ High score and sound preference live in this browser's `localStorage`:
 - High score: `si.last-line-79b111.hi`
 - Sound: `si.last-line-79b111.sound`
 
-`GAME_NAME` and `GAME_HASH` are defined once in `index.html`; `GAME_ID` combines them. Keep the hash unchanged after release so existing scores survive updates. When testing a separate variant, give it a new name and hash so it cannot share this game's data. The hidden system info panel displays the active `GAME_ID`. Only keys under the active `GAME_ID` are read or written. Press `R` in the system info screen to reset the high score, then `Y` to confirm or `N` to cancel.
+`GAME_NAME` and `GAME_HASH` are defined once in `index.html`; `GAME_ID` combines them. Keep the hash unchanged after release so existing scores survive updates. When testing a separate variant, give it a new name and hash so it cannot share this game's data. The hidden system info panel displays the active `GAME_ID`. Only keys under the active `GAME_ID` are read or written. High scores are written only when a run reaches game over. Choosing **TITLE SCREEN** from pause abandons the run, and its score is not saved. Press `R` in the system info screen to reset the high score, then `Y` to confirm or `N` to cancel.
 
 ## License
 
