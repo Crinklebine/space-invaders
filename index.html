@@ -330,8 +330,8 @@
   <div class="screen-shell">
     <div class="screen">
       <canvas id="game" width="1260" height="1440" tabindex="0" role="application"
-        aria-label="Space Invaders. Move with the arrow keys or A and D. Fire with Space. Pause with P. Press Enter to start."
-        aria-keyshortcuts="Enter Space ArrowLeft ArrowRight A D P M"></canvas>
+        aria-label="Space Invaders. Move with the arrow keys or A and D. Fire with Space. Pause with P. Press Enter to start. Press Q on the game over screen to return to title."
+        aria-keyshortcuts="Enter Space ArrowLeft ArrowRight A D P M Q"></canvas>
       <div class="fx scanlines" aria-hidden="true"></div>
       <div class="fx glare" aria-hidden="true"></div>
       <div class="fx vignette" aria-hidden="true"></div>
@@ -964,7 +964,26 @@ function endGame(reason) {
   sound.gameOver();
   clearHeldInput();
   syncUI();
-  announce(`Game over. Final score ${game.score}.`);
+  announce(`Game over. Final score ${game.score}. Press Enter to play again or Q to return to title.`);
+}
+function returnToTitle() {
+  if (game.mode !== 'gameover') return;
+  clearHeldInput();
+  game.mode = 'menu';
+  game.score = 0;
+  game.wave = 1;
+  game.lives = 3;
+  game.nextExtra = 5000;
+  game.newHigh = false;
+  game.endReason = 'destroyed';
+  game.shake = 0;
+  game.damageFlash = 0;
+  game.banner = null;
+  game.dyingTimer = 0;
+  canvas.style.cursor = 'crosshair';
+  sound.ui();
+  syncUI();
+  announce('Returned to title screen.');
 }
 function pauseGame() {
   if (game.mode !== 'playing') return;
@@ -1007,11 +1026,22 @@ function canvasX(e) {
   const r = canvas.getBoundingClientRect();
   return (e.clientX - r.left) * (W / r.width);
 }
+function canvasY(e) {
+  const r = canvas.getBoundingClientRect();
+  return (e.clientY - r.top) * (H / r.height);
+}
+function inRect(x, y, rect) {
+  return x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h;
+}
 function beginPointer(e) {
   if (e.pointerType === 'mouse' && e.button !== 0) return;
   e.preventDefault();
   sound.init();
   if (infoOpen) { toggleInfo(false); return; }
+  if (game.mode === 'gameover' && inRect(canvasX(e), canvasY(e), GAME_OVER_TITLE_RECT)) {
+    returnToTitle();
+    return;
+  }
   if (game.mode === 'menu' || game.mode === 'gameover') {
     primaryAction();
     return;
@@ -1026,6 +1056,9 @@ function beginPointer(e) {
 }
 canvas.addEventListener('pointerdown', beginPointer);
 canvas.addEventListener('pointermove', e => {
+  canvas.style.cursor = game.mode === 'gameover' && inRect(canvasX(e), canvasY(e), GAME_OVER_TITLE_RECT)
+    ? 'pointer'
+    : 'crosshair';
   if (!pointer.down || (pointer.id !== null && e.pointerId !== pointer.id)) return;
   pointer.x = clamp(canvasX(e), 34, W - 34);
   e.preventDefault();
@@ -1047,11 +1080,12 @@ document.addEventListener('keydown', e => {
   const tag = (e.target && e.target.tagName || '').toLowerCase();
   if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
   if (tag === 'button' && (e.code === 'Space' || e.code === 'Enter')) return;
-  const used = ['ArrowLeft','ArrowRight','KeyA','KeyD','Space','Enter','KeyP','Escape','KeyM','KeyI','KeyR','KeyY','KeyN'];
+  const used = ['ArrowLeft','ArrowRight','KeyA','KeyD','Space','Enter','KeyP','Escape','KeyM','KeyI','KeyQ','KeyR','KeyY','KeyN'];
   if (!used.includes(e.code)) return;
   e.preventDefault();
   sound.init();
   if (e.repeat) return;
+  if (e.code === 'KeyQ' && game.mode === 'gameover') { returnToTitle(); return; }
   if (e.code === 'KeyI' && game.mode === 'menu') { toggleInfo(); return; }
   if (infoOpen) {
     if (resetConfirm) {
@@ -1995,6 +2029,8 @@ function drawPause() {
   tracked('PRESS P OR ESC TO RESUME', W / 2, 411, { align: 'center', size: 10, tracking: 2, color: C.ink });
   tracked('CLICK / TAP TO CONTINUE', W / 2, 438, { align: 'center', size: 9, tracking: 2, color: C.muted });
 }
+const GAME_OVER_TITLE_RECT = { x: W / 2 - 110, y: 536, w: 220, h: 30 };
+
 function drawGameOver() {
   dim(.68);
   panel((W - 520) / 2, 218, 520, 360, C.red, 1);
@@ -2011,6 +2047,9 @@ function drawGameOver() {
   const blink = reduceMotion ? 1 : .66 + Math.sin(game.time * 4) * .34;
   pText('PRESS ENTER TO PLAY AGAIN', W / 2, 489, 2, C.ink, { align: 'center', alpha: blink });
   tracked('CLICK OR TAP TO RESTART', W / 2, 524, { align: 'center', size: 9, tracking: 2.1, color: C.muted });
+  const titleBtn = GAME_OVER_TITLE_RECT;
+  panel(titleBtn.x, titleBtn.y, titleBtn.w, titleBtn.h, C.cyan, .92);
+  tracked('PRESS Q OR TAP FOR TITLE', W / 2, titleBtn.y + titleBtn.h / 2, { align: 'center', size: 9, tracking: 2, color: C.cyan });
 }
 function drawWaveClear() {
   dim(.46);
