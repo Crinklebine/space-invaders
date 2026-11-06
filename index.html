@@ -675,7 +675,9 @@ function renderBunker(b) {
   g.fillStyle = 'rgba(4,36,22,.35)'; g.fill(flecks);
 }
 /* ---------- persistence + sound ---------- */
-const GAME_ID = 'last-line'; // permanent storage namespace — do not change
+const GAME_NAME = 'last-line';
+const GAME_HASH = '79b111'; // generated once with `openssl rand -hex 3` — never regenerate
+const GAME_ID = `${GAME_NAME}-${GAME_HASH}`; // last-line-79b111
 const storeKey = name => `si.${GAME_ID}.${name}`;
 function storeGet(key, fallback) {
   try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; }
@@ -683,12 +685,17 @@ function storeGet(key, fallback) {
 function storeSet(key, value) {
   try { localStorage.setItem(key, String(value)); } catch { /* file storage may be unavailable */ }
 }
-/* One-time migration: this original game inherits the old shared high score and sound setting. */
-if (storeGet(storeKey('migrated'), '0') !== '1') {
-  const legacyHi = Math.max(0, parseInt(storeGet('si_hi', '0'), 10) || 0);
+/* One-time migration for this exact ID; a copied variant with a different ID starts fresh. */
+const MIGRATION_ID = 'last-line-79b111';
+if (GAME_ID === MIGRATION_ID && storeGet(storeKey('migrated'), '0') !== '1') {
+  const priorHiRaw = storeGet('si.last-line.hi', null);
+  const priorHi = priorHiRaw === null
+    ? Math.max(0, parseInt(storeGet('si_hi', '0'), 10) || 0)
+    : Math.max(0, parseInt(priorHiRaw, 10) || 0);
   const currentHi = Math.max(0, parseInt(storeGet(storeKey('hi'), '0'), 10) || 0);
-  storeSet(storeKey('hi'), Math.max(legacyHi, currentHi));
-  storeSet(storeKey('sound'), storeGet('si_sound', 'on'));
+  storeSet(storeKey('hi'), Math.max(priorHi, currentHi));
+  const priorSound = storeGet('si.last-line.sound', null);
+  storeSet(storeKey('sound'), priorSound === null ? storeGet('si_sound', 'on') : priorSound);
   storeSet(storeKey('migrated'), '1');
 }
 let soundEnabled = storeGet(storeKey('sound'), 'on') !== 'off';
@@ -990,7 +997,7 @@ function toggleInfo(open = !infoOpen) {
   infoOpen = open;
   sound.ui();
   announce(infoOpen
-    ? `System info. Page ${PAGE_NAME}. Build ${BUILD_HASH}, built ${BUILD_DATE}. ${innerWidth} by ${innerHeight}. Arcade best ${game.hiScore}.`
+    ? `System info. Page ${PAGE_NAME}. Game ID ${GAME_ID}. Build ${BUILD_HASH}, built ${BUILD_DATE}. ${innerWidth} by ${innerHeight}. Arcade best ${game.hiScore}.`
     : 'System info closed.');
 }
 function primaryAction() {
@@ -1899,7 +1906,7 @@ function drawMenu() {
 
 function drawInfo() {
   dim(.84);
-  const x = 45, y = 160, w = W - 90, h = 370;
+  const x = 45, y = 160, w = W - 90, h = 400;
   ctx.save();
   ctx.fillStyle = 'rgba(2,6,12,.92)';
   ctx.fill(cutPath(x, y, w, h, 13));
@@ -1911,6 +1918,7 @@ function drawInfo() {
   line(x + 30, y + 56, x + w - 30, y + 56, rgba(C.mint, .26));
   const rows = [
     ['PAGE', PAGE_NAME, C.ink],
+    ['GAME ID', GAME_ID, C.cyan],
     ['BUILD', BUILD_HASH, C.cyan],
     ['BUILT', BUILD_DATE, C.ink],
     ['RES', `${innerWidth} × ${innerHeight} @ ${devicePixelRatio || 1}x`, C.ink],

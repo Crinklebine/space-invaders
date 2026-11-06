@@ -37,11 +37,13 @@ Touch controls appear automatically on mobile devices.
 
 High score and sound preference live in this browser's `localStorage`:
 
-- Storage ID: **`last-line`**
-- High score: `si.last-line.hi`
-- Sound: `si.last-line.sound`
+- Game name: `last-line`
+- Storage hash: `79b111`
+- Storage ID: **`last-line-79b111`**
+- High score: `si.last-line-79b111.hi`
+- Sound: `si.last-line-79b111.sound`
 
-The ID is defined once in `index.html` as `GAME_ID` and must stay unchanged after release so existing scores survive updates. The old shared `si_hi` value is imported once on first load.
+`GAME_NAME` and `GAME_HASH` are defined once in `index.html`; `GAME_ID` combines them. Keep the hash unchanged after release so existing scores survive updates. When testing a separate variant, give it a new name and hash so it cannot share or inherit this game's data. The hidden system info panel displays the active `GAME_ID`. Old `si.last-line.*` and shared `si_hi` values are imported once on first load.
 
 ## License
 
