@@ -330,7 +330,7 @@
   <div class="screen-shell">
     <div class="screen">
       <canvas id="game" width="1260" height="1440" tabindex="0" role="application"
-        aria-label="Space Invaders. Move with the arrow keys or A and D. Fire with Space. Pause with P. Press Enter to start. Press Q on the game over screen to return to title."
+        aria-label="Space Invaders. Move with the arrow keys or A and D. Fire with Space. Pause with P. Press Enter to play. Press Q on the game over screen to return to title."
         aria-keyshortcuts="Enter Space ArrowLeft ArrowRight A D P M Q"></canvas>
       <div class="fx scanlines" aria-hidden="true"></div>
       <div class="fx glare" aria-hidden="true"></div>
@@ -868,6 +868,7 @@ function makePlayer(x) {
 function startNewGame() {
   sound.init();
   clearHeldInput();
+  canvas.style.cursor = 'crosshair';
   game.score = 0; game.wave = 1; game.lives = 3; game.nextExtra = 5000;
   game.newHigh = false; game.endReason = 'destroyed';
   game.shake = 0; game.damageFlash = 0; game.banner = null; game.dyingTimer = 0;
@@ -1038,11 +1039,13 @@ function beginPointer(e) {
   e.preventDefault();
   sound.init();
   if (infoOpen) { toggleInfo(false); return; }
-  if (game.mode === 'gameover' && inRect(canvasX(e), canvasY(e), GAME_OVER_TITLE_RECT)) {
-    returnToTitle();
+  if (game.mode === 'gameover') {
+    const px = canvasX(e), py = canvasY(e);
+    if (inRect(px, py, GAME_OVER_PLAY_RECT)) primaryAction();
+    else if (inRect(px, py, GAME_OVER_TITLE_RECT)) returnToTitle();
     return;
   }
-  if (game.mode === 'menu' || game.mode === 'gameover') {
+  if (game.mode === 'menu') {
     primaryAction();
     return;
   }
@@ -1056,11 +1059,12 @@ function beginPointer(e) {
 }
 canvas.addEventListener('pointerdown', beginPointer);
 canvas.addEventListener('pointermove', e => {
-  canvas.style.cursor = game.mode === 'gameover' && inRect(canvasX(e), canvasY(e), GAME_OVER_TITLE_RECT)
-    ? 'pointer'
-    : 'crosshair';
+  const px = canvasX(e), py = canvasY(e);
+  const overAction = game.mode === 'gameover'
+    && (inRect(px, py, GAME_OVER_PLAY_RECT) || inRect(px, py, GAME_OVER_TITLE_RECT));
+  canvas.style.cursor = overAction ? 'pointer' : 'crosshair';
   if (!pointer.down || (pointer.id !== null && e.pointerId !== pointer.id)) return;
-  pointer.x = clamp(canvasX(e), 34, W - 34);
+  pointer.x = clamp(px, 34, W - 34);
   e.preventDefault();
 });
 function endPointer(e) {
@@ -1932,7 +1936,7 @@ function drawMenu() {
 
   panel(W / 2 - 205, 430, 410, 64, C.cyan, .92);
   const pulse = reduceMotion ? .9 : .68 + Math.sin(game.time * 4.7) * .32;
-  pText('PRESS ENTER TO START', W / 2, 444, 2, '#eaffff', { align: 'center', alpha: pulse, glow: 8, glowColor: C.cyan });
+  pText('PRESS ENTER TO PLAY', W / 2, 444, 2, '#eaffff', { align: 'center', alpha: pulse, glow: 8, glowColor: C.cyan });
   tracked('OR CLICK / TAP ANYWHERE', W / 2, 474, { align: 'center', size: 9, tracking: 2, color: C.muted });
 
   tracked('MOVE WITH ARROWS OR DRAG   /   FIRE WITH SPACE', W / 2, 521, { align: 'center', size: 9, tracking: 1.5, color: C.dim });
@@ -2029,27 +2033,32 @@ function drawPause() {
   tracked('PRESS P OR ESC TO RESUME', W / 2, 411, { align: 'center', size: 10, tracking: 2, color: C.ink });
   tracked('CLICK / TAP TO CONTINUE', W / 2, 438, { align: 'center', size: 9, tracking: 2, color: C.muted });
 }
-const GAME_OVER_TITLE_RECT = { x: W / 2 - 110, y: 536, w: 220, h: 30 };
+const GAME_OVER_RECT = { x: (W - 520) / 2, y: 160, w: 520, h: 440 };
+const GAME_OVER_PLAY_RECT = { x: W / 2 - 190, y: 420, w: 380, h: 78 };
+const GAME_OVER_TITLE_RECT = { x: W / 2 - 190, y: 506, w: 380, h: 78 };
+
+function drawGameOverAction(rect, label, hint, accent, alpha) {
+  panel(rect.x, rect.y, rect.w, rect.h, accent, alpha);
+  const cy = rect.y + rect.h / 2;
+  tracked(label, rect.x + 26, cy, { size: 12, tracking: 2.4, color: C.ink, alpha });
+  tracked(hint, rect.x + rect.w - 26, cy, { align: 'right', size: 9, tracking: 1.8, color: accent, alpha });
+}
 
 function drawGameOver() {
   dim(.68);
-  panel((W - 520) / 2, 218, 520, 360, C.red, 1);
+  panel(GAME_OVER_RECT.x, GAME_OVER_RECT.y, GAME_OVER_RECT.w, GAME_OVER_RECT.h, C.red, 1);
   const reason = game.endReason === 'invaded' ? 'THE INVASION SUCCEEDED' : 'SECTOR LOST';
-  tracked(reason, W / 2, 254, { align: 'center', size: 9, tracking: 3, color: C.red });
-  pText('GAME OVER', W / 2, 276, 6, '#fff1f4', { align: 'center', glow: 22, glowColor: C.redGlow });
-  decorativeLine(338, 330, C.red);
-  pText('FINAL SCORE', W / 2, 357, 2, C.muted, { align: 'center' });
-  pText(padScore(game.score), W / 2, 379, 5, C.ink, { align: 'center', glow: 8, glowColor: C.cyan });
-  pText(`HI-SCORE ${padScore(game.hiScore)}`, W / 2, 431, 2, C.dim, { align: 'center' });
+  tracked(reason, W / 2, 196, { align: 'center', size: 9, tracking: 3, color: C.red });
+  pText('GAME OVER', W / 2, 218, 6, '#fff1f4', { align: 'center', glow: 22, glowColor: C.redGlow });
+  decorativeLine(272, 338, C.red);
+  pText('FINAL SCORE', W / 2, 299, 2, C.muted, { align: 'center' });
+  pText(padScore(game.score), W / 2, 321, 5, C.ink, { align: 'center', glow: 8, glowColor: C.cyan });
+  pText(`HI-SCORE ${padScore(game.hiScore)}`, W / 2, 373, 2, C.dim, { align: 'center' });
   if (game.newHigh) {
-    pText('NEW HIGH SCORE', W / 2, 453, 2, C.amber, { align: 'center', glow: 10, glowColor: C.amberGlow });
+    pText('NEW HIGH SCORE', W / 2, 395, 2, C.amber, { align: 'center', glow: 10, glowColor: C.amberGlow });
   }
-  const blink = reduceMotion ? 1 : .66 + Math.sin(game.time * 4) * .34;
-  pText('PRESS ENTER TO PLAY AGAIN', W / 2, 489, 2, C.ink, { align: 'center', alpha: blink });
-  tracked('CLICK OR TAP TO RESTART', W / 2, 524, { align: 'center', size: 9, tracking: 2.1, color: C.muted });
-  const titleBtn = GAME_OVER_TITLE_RECT;
-  panel(titleBtn.x, titleBtn.y, titleBtn.w, titleBtn.h, C.cyan, .92);
-  tracked('PRESS Q OR TAP FOR TITLE', W / 2, titleBtn.y + titleBtn.h / 2, { align: 'center', size: 9, tracking: 2, color: C.cyan });
+  drawGameOverAction(GAME_OVER_PLAY_RECT, 'PLAY AGAIN', 'ENTER / SPACE', C.cyan, 1);
+  drawGameOverAction(GAME_OVER_TITLE_RECT, 'TITLE SCREEN', 'Q', C.cyanSoft, .82);
 }
 function drawWaveClear() {
   dim(.46);

@@ -20,9 +20,9 @@ Play in your browser at **https://crinklebine.github.io/space-invaders/**, or op
 | `Space` | Fire |
 | `P` / `Esc` | Pause |
 | `M` | Sound on/off |
-| `Enter` | Start / restart |
+| `Enter` | Play / play again |
 | `Q` | Return to title (game over) |
-| `I` | System info (start screen) |
+| `I` | System info (title screen) |
 | `R` | Reset high score (system info) |
 | `Y` / `N` | Confirm / cancel reset |
 
