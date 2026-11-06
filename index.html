@@ -675,13 +675,23 @@ function renderBunker(b) {
   g.fillStyle = 'rgba(4,36,22,.35)'; g.fill(flecks);
 }
 /* ---------- persistence + sound ---------- */
+const GAME_ID = 'last-line'; // permanent storage namespace — do not change
+const storeKey = name => `si.${GAME_ID}.${name}`;
 function storeGet(key, fallback) {
   try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; }
 }
 function storeSet(key, value) {
   try { localStorage.setItem(key, String(value)); } catch { /* file storage may be unavailable */ }
 }
-let soundEnabled = storeGet('si_sound', 'on') !== 'off';
+/* One-time migration: this original game inherits the old shared high score and sound setting. */
+if (storeGet(storeKey('migrated'), '0') !== '1') {
+  const legacyHi = Math.max(0, parseInt(storeGet('si_hi', '0'), 10) || 0);
+  const currentHi = Math.max(0, parseInt(storeGet(storeKey('hi'), '0'), 10) || 0);
+  storeSet(storeKey('hi'), Math.max(legacyHi, currentHi));
+  storeSet(storeKey('sound'), storeGet('si_sound', 'on'));
+  storeSet(storeKey('migrated'), '1');
+}
+let soundEnabled = storeGet(storeKey('sound'), 'on') !== 'off';
 const sound = (() => {
   let ac = null, master = null, noiseBuf = null;
   function init() {
@@ -757,7 +767,7 @@ const touchButtons = [...document.querySelectorAll('[data-hold]')];
 
 let infoOpen = false;
 const game = {
-  mode: 'menu', score: 0, hiScore: Math.max(0, parseInt(storeGet('si_hi', '0'), 10) || 0),
+  mode: 'menu', score: 0, hiScore: Math.max(0, parseInt(storeGet(storeKey('hi'), '0'), 10) || 0),
   wave: 1, lives: 3, nextExtra: 5000, newHigh: false,
   time: 0, shake: 0, damageFlash: 0,
   dyingTimer: 0, dyingReason: 'destroyed', endReason: 'destroyed',
@@ -803,11 +813,11 @@ function syncUI() {
   soundBtn.setAttribute('aria-pressed', String(soundEnabled));
 }
 function announce(msg) { live.textContent = ''; setTimeout(() => { live.textContent = msg; }, 30); }
-function saveHi() { storeSet('si_hi', Math.max(game.hiScore, game.score)); }
+function saveHi() { storeSet(storeKey('hi'), Math.max(game.hiScore, game.score)); }
 function toggleSound() {
   sound.init();
   sound.setEnabled(!soundEnabled);
-  storeSet('si_sound', soundEnabled ? 'on' : 'off');
+  storeSet(storeKey('sound'), soundEnabled ? 'on' : 'off');
   if (soundEnabled) sound.ui();
   syncUI();
 }

@@ -33,6 +33,16 @@ Touch controls appear automatically on mobile devices.
 - Persistent high score and a hidden build/system info panel
 - Responsive 7:8 portrait cabinet with CRT scanlines, glow, and screen shake
 
+## Saved data
+
+High score and sound preference live in this browser's `localStorage`:
+
+- Storage ID: **`last-line`**
+- High score: `si.last-line.hi`
+- Sound: `si.last-line.sound`
+
+The ID is defined once in `index.html` as `GAME_ID` and must stay unchanged after release so existing scores survive updates. The old shared `si_hi` value is imported once on first load.
+
 ## License
 
 Licensed under the [GNU General Public License v3.0](LICENSE).
