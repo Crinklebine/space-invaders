@@ -48,6 +48,18 @@ High score and sound preference live in this browser's `localStorage`:
 
 `GAME_NAME` and `GAME_HASH` are defined once in `index.html`; `GAME_ID` combines them. Keep the hash unchanged after release so existing scores survive updates. When testing a separate variant, give it a new name and hash so it cannot share this game's data. The hidden system info panel displays the active `GAME_ID`. Only keys under the active `GAME_ID` are read or written. High scores are written only when a run reaches game over. Choosing **TITLE SCREEN** from pause abandons the run, and its score is not saved; if the run has beaten the stored best, the pause screen marks it **[HIGH SCORE LOST]** in yellow. Open system info with `I` or the title-screen info icon, then press `R` or tap **RESET HIGH SCORE**. Confirm with `Y` / **YES, RESET**, or cancel with `N` / **NO, KEEP SCORE**.
 
+## Build Me punch cards
+
+The `punchcards` folder contains the full build prompt as three character-accurate cards. Copy all three card images into an AI assistant and simply say **“Build Me”**. A text version is also available at [BUILDME-PROMPT.md](BUILDME-PROMPT.md). Click a thumbnail to open the full-resolution card.
+
+<table>
+  <tr>
+    <td align="center" width="33%"><a href="punchcards/buildme_punch_card_01.png"><img src="punchcards/buildme_punch_card_01_thumb.png" alt="Build Me punch card 1 of 3"></a></td>
+    <td align="center" width="33%"><a href="punchcards/buildme_punch_card_02.png"><img src="punchcards/buildme_punch_card_02_thumb.png" alt="Build Me punch card 2 of 3"></a></td>
+    <td align="center" width="33%"><a href="punchcards/buildme_punch_card_03.png"><img src="punchcards/buildme_punch_card_03_thumb.png" alt="Build Me punch card 3 of 3"></a></td>
+  </tr>
+</table>
+
 ## License
 
 Licensed under the [GNU General Public License v3.0](LICENSE).
