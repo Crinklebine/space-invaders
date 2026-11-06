@@ -46,7 +46,7 @@ High score and sound preference live in this browser's `localStorage`:
 - High score: `si.last-line-79b111.hi`
 - Sound: `si.last-line-79b111.sound`
 
-`GAME_NAME` and `GAME_HASH` are defined once in `index.html`; `GAME_ID` combines them. Keep the hash unchanged after release so existing scores survive updates. When testing a separate variant, give it a new name and hash so it cannot share this game's data. The hidden system info panel displays the active `GAME_ID`. Only keys under the active `GAME_ID` are read or written. High scores are written only when a run reaches game over. Choosing **TITLE SCREEN** from pause abandons the run, and its score is not saved. Press `R` in the system info screen to reset the high score, then `Y` to confirm or `N` to cancel.
+`GAME_NAME` and `GAME_HASH` are defined once in `index.html`; `GAME_ID` combines them. Keep the hash unchanged after release so existing scores survive updates. When testing a separate variant, give it a new name and hash so it cannot share this game's data. The hidden system info panel displays the active `GAME_ID`. Only keys under the active `GAME_ID` are read or written. High scores are written only when a run reaches game over. Choosing **TITLE SCREEN** from pause abandons the run, and its score is not saved; if the run has beaten the stored best, the pause screen marks it **[HIGH SCORE LOST]** in yellow. Press `R` in the system info screen to reset the high score, then `Y` to confirm or `N` to cancel.
 
 ## License
 

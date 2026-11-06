@@ -1005,7 +1005,9 @@ function pauseGame() {
   canvas.style.cursor = 'default';
   clearHeldInput();
   syncUI();
-  announce('Game paused. Press P, Escape, or Enter to resume, or Q to return to title.');
+  announce(game.newHigh
+    ? 'Game paused. Press P, Escape, or Enter to resume, or Q to return to title. Warning: returning to title will lose this run\'s new high score.'
+    : 'Game paused. Press P, Escape, or Enter to resume, or Q to return to title.');
 }
 function resumeGame() {
   if (game.mode !== 'paused') return;
@@ -2054,10 +2056,15 @@ const GAME_OVER_RECT = { x: (W - 520) / 2, y: 160, w: 520, h: 440 };
 const GAME_OVER_PLAY_RECT = { x: W / 2 - 190, y: 420, w: 380, h: 78 };
 const GAME_OVER_TITLE_RECT = { x: W / 2 - 190, y: 506, w: 380, h: 78 };
 
-function drawActionRow(rect, label, hint, accent, alpha) {
+function drawActionRow(rect, label, hint, accent, alpha, warning) {
   panel(rect.x, rect.y, rect.w, rect.h, accent, alpha);
   const cy = rect.y + rect.h / 2;
-  tracked(label, rect.x + 26, cy, { size: 12, tracking: 2.4, color: C.ink, alpha });
+  const labelWidth = tracked(label, rect.x + 26, cy, { size: 12, tracking: 2.4, color: C.ink, alpha });
+  if (warning) {
+    tracked(warning, rect.x + 26 + labelWidth + 14, cy, {
+      size: 9, tracking: 1.1, color: C.amber, alpha: 1, weight: 600
+    });
+  }
   tracked(hint, rect.x + rect.w - 26, cy, { align: 'right', size: 9, tracking: 1.8, color: accent, alpha });
 }
 
@@ -2068,7 +2075,8 @@ function drawPause() {
   pText('PAUSED', W / 2, 258, 6, C.ink, { align: 'center', glow: 18, glowColor: C.cyan });
   decorativeLine(322, 338, C.cyan);
   drawActionRow(PAUSE_RESUME_RECT, 'RESUME', 'P / ESC / ENTER', C.cyan, 1);
-  drawActionRow(PAUSE_TITLE_RECT, 'TITLE SCREEN', 'Q', C.cyanSoft, .82);
+  drawActionRow(PAUSE_TITLE_RECT, 'TITLE SCREEN', 'Q', C.cyanSoft, .82,
+    game.newHigh ? '[HIGH SCORE LOST]' : '');
 }
 
 function drawGameOver() {
