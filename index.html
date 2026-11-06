@@ -685,19 +685,6 @@ function storeGet(key, fallback) {
 function storeSet(key, value) {
   try { localStorage.setItem(key, String(value)); } catch { /* file storage may be unavailable */ }
 }
-/* One-time migration for this exact ID; a copied variant with a different ID starts fresh. */
-const MIGRATION_ID = 'last-line-79b111';
-if (GAME_ID === MIGRATION_ID && storeGet(storeKey('migrated'), '0') !== '1') {
-  const priorHiRaw = storeGet('si.last-line.hi', null);
-  const priorHi = priorHiRaw === null
-    ? Math.max(0, parseInt(storeGet('si_hi', '0'), 10) || 0)
-    : Math.max(0, parseInt(priorHiRaw, 10) || 0);
-  const currentHi = Math.max(0, parseInt(storeGet(storeKey('hi'), '0'), 10) || 0);
-  storeSet(storeKey('hi'), Math.max(priorHi, currentHi));
-  const priorSound = storeGet('si.last-line.sound', null);
-  storeSet(storeKey('sound'), priorSound === null ? storeGet('si_sound', 'on') : priorSound);
-  storeSet(storeKey('migrated'), '1');
-}
 let soundEnabled = storeGet(storeKey('sound'), 'on') !== 'off';
 const sound = (() => {
   let ac = null, master = null, noiseBuf = null;

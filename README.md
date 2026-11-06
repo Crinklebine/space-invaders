@@ -43,7 +43,7 @@ High score and sound preference live in this browser's `localStorage`:
 - High score: `si.last-line-79b111.hi`
 - Sound: `si.last-line-79b111.sound`
 
-`GAME_NAME` and `GAME_HASH` are defined once in `index.html`; `GAME_ID` combines them. Keep the hash unchanged after release so existing scores survive updates. When testing a separate variant, give it a new name and hash so it cannot share or inherit this game's data. The hidden system info panel displays the active `GAME_ID`. Old `si.last-line.*` and shared `si_hi` values are imported once on first load.
+`GAME_NAME` and `GAME_HASH` are defined once in `index.html`; `GAME_ID` combines them. Keep the hash unchanged after release so existing scores survive updates. When testing a separate variant, give it a new name and hash so it cannot share this game's data. The hidden system info panel displays the active `GAME_ID`. Only keys under the active `GAME_ID` are read or written.
 
 ## License
 
